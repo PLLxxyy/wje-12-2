@@ -1,15 +1,20 @@
-import { Play, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react'
+import { useState } from 'react'
+import { Play, Settings, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useGameStore } from '@/store/useGameStore'
+import { SettingsPanel } from '@/components/SettingsPanel'
 
 export function StartOverlay() {
   const isPlaying = useGameStore((state) => state.isPlaying)
   const isGameOver = useGameStore((state) => state.isGameOver)
   const startGame = useGameStore((state) => state.startGame)
+  const [showSettings, setShowSettings] = useState(false)
 
   if (isPlaying || isGameOver) return null
 
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-xl">
+      <SettingsPanel isOpen={showSettings} onClose={() => setShowSettings(false)} />
+
       <div className="text-center">
         <button
           onClick={startGame}
@@ -17,6 +22,14 @@ export function StartOverlay() {
         >
           <Play size={20} className="fill-white" />
           开始游戏
+        </button>
+
+        <button
+          onClick={() => setShowSettings(true)}
+          className="mt-4 py-2 px-6 bg-snake-body/20 hover:bg-snake-body/30 text-snake-body font-mono text-sm rounded-lg transition-colors flex items-center gap-2 mx-auto"
+        >
+          <Settings size={16} />
+          游戏设置
         </button>
 
         <div className="mt-8 text-snake-body/60">

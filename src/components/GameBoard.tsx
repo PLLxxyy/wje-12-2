@@ -1,11 +1,13 @@
 import { useGameStore } from '@/store/useGameStore'
-import { GRID_SIZE, CELL_SIZE } from '@/utils/constants'
+import { useSettingsStore } from '@/store/useSettingsStore'
 
 export function GameBoard() {
   const snake = useGameStore((state) => state.snake)
   const food = useGameStore((state) => state.food)
+  const gridSize = useSettingsStore((state) => state.gridSize)
+  const cellSize = useSettingsStore((state) => state.cellSize)
 
-  const boardSize = GRID_SIZE * CELL_SIZE
+  const boardSize = gridSize * cellSize
 
   return (
     <div
@@ -13,7 +15,7 @@ export function GameBoard() {
       style={{
         width: boardSize,
         height: boardSize,
-        backgroundSize: `${CELL_SIZE}px ${CELL_SIZE}px`,
+        backgroundSize: `${cellSize}px ${cellSize}px`,
       }}
     >
       {snake.map((segment, index) => {
@@ -28,10 +30,10 @@ export function GameBoard() {
             key={`snake-${index}`}
             className={`absolute ${bgColor} rounded-md transition-all duration-75`}
             style={{
-              width: CELL_SIZE - 2,
-              height: CELL_SIZE - 2,
-              left: segment.x * CELL_SIZE + 1,
-              top: segment.y * CELL_SIZE + 1,
+              width: cellSize - 2,
+              height: cellSize - 2,
+              left: segment.x * cellSize + 1,
+              top: segment.y * cellSize + 1,
               opacity: isHead ? 1 : 1 - index * 0.02,
             }}
           >
@@ -48,10 +50,10 @@ export function GameBoard() {
       <div
         className="absolute bg-snake-food rounded-full shadow-glow-red animate-pulse-fast"
         style={{
-          width: CELL_SIZE - 6,
-          height: CELL_SIZE - 6,
-          left: food.x * CELL_SIZE + 3,
-          top: food.y * CELL_SIZE + 3,
+          width: cellSize - 6,
+          height: cellSize - 6,
+          left: food.x * cellSize + 3,
+          top: food.y * cellSize + 3,
         }}
       >
         <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-green-700 rounded-full" />

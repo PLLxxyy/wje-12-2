@@ -6,13 +6,22 @@ import { StartOverlay } from '@/components/StartOverlay'
 import { useKeyboard } from '@/hooks/useKeyboard'
 import { useGameLoop } from '@/hooks/useGameLoop'
 import { useGameStore } from '@/store/useGameStore'
+import { useSettingsStore } from '@/store/useSettingsStore'
 
 export default function GamePage() {
   const loadHighScore = useGameStore((state) => state.loadHighScore)
+  const resetBoard = useGameStore((state) => state.resetBoard)
+  const loadSettings = useSettingsStore((state) => state.loadSettings)
+  const gridSize = useSettingsStore((state) => state.gridSize)
 
   useEffect(() => {
+    loadSettings()
     loadHighScore()
-  }, [loadHighScore])
+  }, [loadSettings, loadHighScore])
+
+  useEffect(() => {
+    resetBoard()
+  }, [gridSize, resetBoard])
 
   useKeyboard()
   useGameLoop()

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Position, Direction } from '@/types/game'
-import { INITIAL_SNAKE, INITIAL_DIRECTION, MOVE_INTERVAL, HIGH_SCORE_KEY } from '@/utils/constants'
+import { INITIAL_DIRECTION, HIGH_SCORE_KEY } from '@/utils/constants'
+import { useSettingsStore } from '@/store/useSettingsStore'
 import {
   getNextHeadPosition,
   checkWallCollision,
@@ -8,6 +9,7 @@ import {
   checkFoodCollision,
   isOppositeDirection,
   generateRandomFood,
+  getInitialSnake,
 } from '@/utils/gameUtils'
 
 interface GameStore {
@@ -19,12 +21,12 @@ interface GameStore {
   highScore: number
   isGameOver: boolean
   isPlaying: boolean
-  moveInterval: number
   setDirection: (dir: Direction) => void
   moveSnake: () => void
   startGame: () => void
   resetGame: () => void
   loadHighScore: () => void
+  resetBoard: () => void
 }
 
 const loadHighScoreFromStorage = (): number => {
@@ -33,94 +35,117 @@ const loadHighScoreFromStorage = (): number => {
   return stored ? parseInt(stored, 10) : 0
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
-  snake: INITIAL_SNAKE,
-  food: generateRandomFood(INITIAL_SNAKE),
-  direction: INITIAL_DIRECTION,
-  nextDirection: INITIAL_DIRECTION,
-  score: 0,
-  highScore: 0,
-  isGameOver: false,
-  isPlaying: false,
-  moveInterval: MOVE_INTERVAL,
+const getGridSize = () => useSettingsStore.getState().gridSize
 
-  loadHighScore: () => {
-    set({ highScore: loadHighScoreFromStorage() })
-  },
+export const useGameStore = create<GameStore>((set, get) => {
+  const initialGridSize = getGridSize()
+  const initialSnake = getInitialSnake(initialGridSize)
 
-  setDirection: (dir: Direction) => {
-    const { direction, isGameOver, isPlaying } = get()
-    if (isGameOver || !isPlaying) return
-    if (isOppositeDirection(direction, dir)) return
-    set({ nextDirection: dir })
-  },
+  return {
+    snake: initialSnake,
+    food: generateRandomFood(initialSnake, initialGridSize),
+    direction: INITIAL_DIRECTION,
+    nextDirection: INITIAL_DIRECTION,
+    score: 0,
+    highScore: 0,
+    isGameOver: false,
+    isPlaying: false,
 
-  moveSnake: () => {
-    const state = get()
-    if (state.isGameOver || !state.isPlaying) return
+    loadHighScore: () => {
+      set({ highScore: loadHighScoreFromStorage() })
+    },
 
-    const direction = state.nextDirection
-    const head = state.snake[0]
-    const newHead = getNextHeadPosition(head, direction)
+    setDirection: (dir: Direction) => {
+      const { direction, isGameOver, isPlaying } = get()
+      if (isGameOver || !isPlaying) return
+      if (isOppositeDirection(direction, dir)) return
+      set({ nextDirection: dir })
+    },
 
-    if (checkWallCollision(newHead)) {
-      const newHigh = Math.max(state.score, state.highScore)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(HIGH_SCORE_KEY, newHigh.toString())
+    moveSnake: () => {
+      const state = get()
+      if (state.isGameOver || !state.isPlaying) return
+
+      const gridSize = getGridSize()
+      const direction = state.nextDirection
+      const head = state.snake[0]
+      const newHead = getNextHeadPosition(head, direction)
+
+      if (checkWallCollision(newHead, gridSize)) {
+        const newHigh = Math.max(state.score, state.highScore)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(HIGH_SCORE_KEY, newHigh.toString())
+        }
+        set({
+          isGameOver: true,
+          isPlaying: false,
+          highScore: newHigh,
+        })
+        return
       }
-      set({
-        isGameOver: true,
-        isPlaying: false,
-        highScore: newHigh,
-      })
-      return
-    }
 
-    const bodyWithoutTail = state.snake.slice(0, -1)
-    if (checkSelfCollision(newHead, bodyWithoutTail)) {
-      const newHigh = Math.max(state.score, state.highScore)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(HIGH_SCORE_KEY, newHigh.toString())
+      const bodyWithoutTail = state.snake.slice(0, -1)
+      if (checkSelfCollision(newHead, bodyWithoutTail)) {
+        const newHigh = Math.max(state.score, state.highScore)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(HIGH_SCORE_KEY, newHigh.toString())
+        }
+        set({
+          isGameOver: true,
+          isPlaying: false,
+          highScore: newHigh,
+        })
+        return
       }
+
+      const ateFood = checkFoodCollision(newHead, state.food)
+      const newSnake = ateFood
+        ? [newHead, ...state.snake]
+        : [newHead, ...state.snake.slice(0, -1)]
+
+      const newScore = ateFood ? state.score + 1 : state.score
+      const newFood = ateFood ? generateRandomFood(newSnake, gridSize) : state.food
+
       set({
-        isGameOver: true,
-        isPlaying: false,
-        highScore: newHigh,
+        snake: newSnake,
+        food: newFood,
+        direction,
+        score: newScore,
       })
-      return
-    }
+    },
 
-    const ateFood = checkFoodCollision(newHead, state.food)
-    const newSnake = ateFood
-      ? [newHead, ...state.snake]
-      : [newHead, ...state.snake.slice(0, -1)]
+    startGame: () => {
+      const state = get()
+      if (state.isGameOver) return
+      set({ isPlaying: true })
+    },
 
-    const newScore = ateFood ? state.score + 1 : state.score
-    const newFood = ateFood ? generateRandomFood(newSnake) : state.food
+    resetGame: () => {
+      const gridSize = getGridSize()
+      const newSnake = getInitialSnake(gridSize)
+      set({
+        snake: newSnake,
+        food: generateRandomFood(newSnake, gridSize),
+        direction: INITIAL_DIRECTION,
+        nextDirection: INITIAL_DIRECTION,
+        score: 0,
+        isGameOver: false,
+        isPlaying: true,
+      })
+    },
 
-    set({
-      snake: newSnake,
-      food: newFood,
-      direction,
-      score: newScore,
-    })
-  },
-
-  startGame: () => {
-    const state = get()
-    if (state.isGameOver) return
-    set({ isPlaying: true })
-  },
-
-  resetGame: () => {
-    set({
-      snake: INITIAL_SNAKE,
-      food: generateRandomFood(INITIAL_SNAKE),
-      direction: INITIAL_DIRECTION,
-      nextDirection: INITIAL_DIRECTION,
-      score: 0,
-      isGameOver: false,
-      isPlaying: true,
-    })
-  },
-}))
+    resetBoard: () => {
+      const gridSize = getGridSize()
+      const newSnake = getInitialSnake(gridSize)
+      set({
+        snake: newSnake,
+        food: generateRandomFood(newSnake, gridSize),
+        direction: INITIAL_DIRECTION,
+        nextDirection: INITIAL_DIRECTION,
+        score: 0,
+        isGameOver: false,
+        isPlaying: false,
+      })
+    },
+  }
+})

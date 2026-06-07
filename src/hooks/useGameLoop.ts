@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { useGameStore } from '@/store/useGameStore'
+import { useSettingsStore } from '@/store/useSettingsStore'
 
 export function useGameLoop() {
   const isPlaying = useGameStore((state) => state.isPlaying)
   const isGameOver = useGameStore((state) => state.isGameOver)
   const moveSnake = useGameStore((state) => state.moveSnake)
-  const moveInterval = useGameStore((state) => state.moveInterval)
+  const moveInterval = useSettingsStore((state) => state.moveInterval)
   const timerRef = useRef<number | null>(null)
 
   useEffect(() => {
